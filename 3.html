@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUMEN — Exclusive Photography Stock</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0a0a0b',
+              gray: '#121215',
+              accent: '#ffffff'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Scrollbar ultra-discreta */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0a0b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #26262b;
+      border-radius: 4px;
+    }
+
+    body {
+      background-color: #0a0a0b;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Animación de entrada suave tipo Reveal */
+    .photo-card {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: cardAppear 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes cardAppear {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Efectos Flares Cinematográficos y Destellos */
+    .flare-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Destello Anamórfico horizontal (streak flare) */
+    .flare-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: -150%;
+      width: 300%;
+      height: 300%;
+      background: linear-gradient(
+        45deg,
+        transparent 42%,
+        rgba(255, 255, 255, 0.03) 47%,
+        rgba(255, 255, 255, 0.45) 50%,
+        rgba(255, 255, 255, 0.03) 53%,
+        transparent 58%
+      );
+      transform: rotate(25deg);
+      transition: opacity 0.4s ease, transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+    }
+
+    /* Punto de luz orb/lens flare */
+    .flare-wrapper::after {
+      content: '';
+      position: absolute;
+      top: var(--mouse-y, 50%);
+      left: var(--mouse-x, 50%);
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(200, 230, 255, 0.35) 25%,
+        rgba(255, 200, 150, 0.15) 50%,
+        transparent 70%
+      );
+      transform: translate(-50%, -50%) scale(0.3);
+      opacity: 0;
+      transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      z-index: 11;
+    }
+
+    .flare-wrapper:hover::before {
+      opacity: 1;
+      transform: rotate(25deg) translate(25%, 25%);
+    }
+
+    .flare-wrapper:hover::after {
+      opacity: 0.85;
+      transform: translate(-50%, -50%) scale(1.4);
+    }
+
+    /* Zoom suave a la imagen */
+    .flare-wrapper img {
+      transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
+      will-change: transform;
+    }
+
+    .flare-wrapper:hover img {
+      transform: scale(1.06);
+      filter: brightness(1.08) contrast(1.03);
+    }
+
+    /* Animación de apertura modal */
+    #lightbox.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #lightbox-img-wrapper {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-20 select-none bg-neutral-950">
+
+  <!-- DESPLEGABLE DE FILTROS MINIMALISTA -->
+  <div class="fixed top-6 left-1/2 -translate-x-1/2 z-30">
+    <div class="relative">
+      <!-- Botón Desplegable Principal -->
+      <button id="filter-dropdown-btn" onclick="toggleFilterDropdown()" class="flex items-center gap-3 px-5 py-2.5 bg-black/70 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl hover:border-white/30 transition-all text-xs uppercase tracking-widest text-white">
+        <i class="fa-solid fa-sliders text-white/60 text-xs"></i>
+        <span id="active-filter-label" class="font-medium">Filtro: Todos</span>
+        <span id="active-filter-count" class="px-2 py-0.5 bg-white/10 rounded-full text-[10px] text-white/80 font-mono">16</span>
+        <i id="dropdown-chevron" class="fa-solid fa-chevron-down text-[10px] text-white/50 transition-transform duration-300 ml-1"></i>
+      </button>
+
+      <!-- Menú Desplegable (Dropdown Panel) -->
+      <div id="filter-dropdown-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-neutral-950/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl p-2 z-40 transition-all">
+        <div class="text-[10px] uppercase tracking-widest text-white/40 font-mono px-3 py-1.5 border-b border-white/10 flex justify-between items-center">
+          <span>Categorías</span>
+          <span class="text-[9px] text-white/30">Seleccionar</span>
+        </div>
+
+        <!-- Contenedor dinámico de lista de opciones -->
+        <div id="filter-options-list" class="py-1 max-h-56 overflow-y-auto space-y-0.5">
+          <!-- Opciones inyectadas dinámicamente por JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GALERÍA FOTOGRÁFICA FULL FRAME (2 cols Móvil | 4 cols Escritorio - Sin Espacios Vaciós) -->
+  <main class="w-full min-h-screen grid grid-cols-2 md:grid-cols-4 gap-0 border-b border-white/5" id="gallery-grid">
+
+    <!-- Item 1 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.03s" onclick="openLightbox(0)">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85" alt="Arquitectura Brutalista V" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Villa Minimalista N-01</h3>
+      </div>
+    </div>
+
+    <!-- Item 2 - Retratos -->
+    <div class="photo-card retratos flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.06s" onclick="openLightbox(1)">
+      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=85" alt="Retrato en Sombra" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Retratos</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Claroscuro Editorial</h3>
+      </div>
+    </div>
+
+    <!-- Item 3 - Paisajes -->
+    <div class="photo-card paisajes flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.09s" onclick="openLightbox(2)">
+      <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=85" alt="Lago Neblinoso" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Paisajes</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Horizonte en Niebla</h3>
+      </div>
+    </div>
+
+    <!-- Item 4 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.12s" onclick="openLightbox(3)">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85" alt="Geometría Urbana" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Estructura Volumétrica</h3>
+      </div>
+    </div>
+
+    <!-- Item 5 - Retratos -->
+    <div class="photo-card retratos flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.15s" onclick="openLightbox(4)">
+      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1200&q=85" alt="Mirada Expresiva" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Retratos</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Silueta y Expresión</h3>
+      </div>
+    </div>
+
+    <!-- Item 6 - Paisajes -->
+    <div class="photo-card paisajes flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.18s" onclick="openLightbox(5)">
+      <img src="https://images.unsplash.com/photo-1511884642898-4c92249e20b6?auto=format&fit=crop&w=1200&q=85" alt="Bosque Alborada" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Paisajes</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Bosque de Pinos</h3>
+      </div>
+    </div>
+
+    <!-- Item 7 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.21s" onclick="openLightbox(6)">
+      <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1200&q=85" alt="Espacio Abierto" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Luz y Hormigón</h3>
+      </div>
+    </div>
+
+    <!-- Item 8 - Retratos -->
+    <div class="photo-card retratos flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.24s" onclick="openLightbox(7)">
+      <img src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=1200&q=85" alt="Estudio de Luz" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Retratos</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Contraluz Editorial</h3>
+      </div>
+    </div>
+
+    <!-- Item 9 - Paisajes -->
+    <div class="photo-card paisajes flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.27s" onclick="openLightbox(8)">
+      <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=85" alt="Montaña y Niebla" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Paisajes</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Cumbre Nublada</h3>
+      </div>
+    </div>
+
+    <!-- Item 10 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.30s" onclick="openLightbox(9)">
+      <img src="https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=85" alt="Terraza Minimalista" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Líneas al Atardecer</h3>
+      </div>
+    </div>
+
+    <!-- Item 11 - Retratos -->
+    <div class="photo-card retratos flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.33s" onclick="openLightbox(10)">
+      <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=1200&q=85" alt="Mirada Serena" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Retratos</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Mirada Serena</h3>
+      </div>
+    </div>
+
+    <!-- Item 12 - Paisajes -->
+    <div class="photo-card paisajes flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.36s" onclick="openLightbox(11)">
+      <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=85" alt="Costa Minimalista" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Paisajes</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Costa Minimalista</h3>
+      </div>
+    </div>
+
+    <!-- Item 13 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.39s" onclick="openLightbox(12)">
+      <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=85" alt="Geometría Monocroma" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Geometría Monocroma</h3>
+      </div>
+    </div>
+
+    <!-- Item 14 - Retratos -->
+    <div class="photo-card retratos flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.42s" onclick="openLightbox(13)">
+      <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=85" alt="Sombra y Perfil" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Retratos</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Sombra y Perfil</h3>
+      </div>
+    </div>
+
+    <!-- Item 15 - Paisajes -->
+    <div class="photo-card paisajes flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.45s" onclick="openLightbox(14)">
+      <img src="https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=85" alt="Desierto de Arena" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Paisajes</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Dunas en Penumbra</h3>
+      </div>
+    </div>
+
+    <!-- Item 16 - Paisajes -->
+    <div class="photo-card paisajes flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.48s" onclick="openLightbox(15)">
+      <img src="https://images.unsplash.com/photo-1439853949127-fa647821eba0?auto=format&fit=crop&w=1200&q=85" alt="Reflejo en Agua" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Paisajes</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Reflejo en Calma</h3>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL / LIGHTBOX DE VISUALIZACIÓN EN PANTALLA COMPLETA -->
+  <div id="lightbox" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4 md:p-10">
+    
+    <!-- Contador e Información -->
+    <div id="lb-counter-wrapper" class="absolute top-6 left-6 md:left-10 text-white/70 font-mono text-xs tracking-widest z-20">
+      <span id="lb-counter">01 / 16</span>
+    </div>
+
+    <!-- Botón Cerrar -->
+    <button onclick="closeLightbox()" aria-label="Cerrar visor" class="absolute top-5 right-5 md:top-8 md:right-10 text-white/60 hover:text-white text-2xl w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-all z-20">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <!-- Botón Imagen Previa -->
+    <button id="lb-prev-btn" onclick="prevImage()" aria-label="Imagen anterior" class="absolute left-3 md:left-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-2xl w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-white/20 backdrop-blur-md transition-all z-20 border border-white/10">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+
+    <!-- Contenedor de Imagen Central -->
+    <div id="lightbox-img-wrapper" class="relative max-w-6xl max-h-[82vh] w-full h-full flex items-center justify-center overflow-hidden">
+      <img id="lightbox-img" src="" alt="Fotografía ampliada" class="max-w-full max-h-full object-contain select-none rounded-sm shadow-2xl">
+    </div>
+
+    <!-- Contenedor de Perfil Personal (Fotografía limpia sin rollover, texto fluido y botones sutiles) -->
+    <div id="lightbox-profile-wrapper" class="hidden relative max-w-2xl w-full bg-neutral-950/95 border border-white/15 rounded-3xl overflow-hidden backdrop-blur-2xl shadow-2xl text-white z-20 my-auto transition-all flex flex-col md:flex-row max-h-[85vh]">
+      
+      <!-- Sección Fotográfica Protagonista (Fotografía estática sin hover/rollover) -->
+      <div class="relative w-full md:w-1/2 h-64 md:h-auto overflow-hidden bg-neutral-900 flex-shrink-0">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=85" alt="Retrato Editorial Autor" class="w-full h-full object-cover object-center">
+        <div class="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-transparent md:bg-gradient-to-r md:from-transparent md:via-neutral-950/40 md:to-neutral-950 pointer-events-none"></div>
+        
+        <!-- Insignia sobre la foto -->
+        <div class="absolute bottom-4 left-4 z-20">
+          <span class="px-3 py-1 bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-[10px] uppercase tracking-widest text-white/90 font-medium">
+            Director
+          </span>
+        </div>
+      </div>
+
+      <!-- Información Personal y Botones de Contacto Sutiles -->
+      <div class="w-full md:w-1/2 p-6 md:p-8 flex flex-col justify-between space-y-4 overflow-y-auto">
+        <div>
+          <span class="text-[10px] tracking-widest uppercase text-white/40 font-mono block mb-1">Director Creativo</span>
+          <h2 class="text-2xl font-bold tracking-tight text-white mb-2">Mateo Valenzuela</h2>
+          
+          <p class="text-xs leading-relaxed text-white/70 font-light mb-4">
+            Especializado en capturar la armonía visual de las formas arquitectónicas contemporáneas y la emotividad en retratos editoriales con iluminación cinemática.
+          </p>
+        </div>
+
+        <!-- Botones de Acción Sutiles y Pequeños -->
+        <div class="pt-2 flex items-center justify-start gap-2.5">
+          <a href="https://wa.me/34600000000" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 bg-emerald-950/50 hover:bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 rounded-full text-[11px] font-medium transition-all flex items-center gap-1.5 shadow-sm">
+            <i class="fa-brands fa-whatsapp text-xs text-emerald-400"></i>
+            <span>WhatsApp</span>
+          </a>
+
+          <a href="tel:+34600000000" class="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-white/90 border border-white/20 rounded-full text-[11px] font-medium transition-all flex items-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-phone text-[10px] text-white/80"></i>
+            <span>Llamar</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Botón Imagen Siguiente -->
+    <button id="lb-next-btn" onclick="nextImage()" aria-label="Imagen siguiente" class="absolute right-3 md:right-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-2xl w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-white/20 backdrop-blur-md transition-all z-20 border border-white/10">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+
+  </div>
+
+  <!-- FOOTER FIJO (BLANCO, LIMPIO Y MINIMALISTA) -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white text-neutral-900 border-t border-neutral-200 px-6 py-4 md:px-12 flex justify-between items-center shadow-[0_-5px_25px_rgba(0,0,0,0.06)]">
+    
+    <!-- LOGO MINIMALISTA -->
+    <a href="#" class="flex items-center gap-2 group">
+      <div class="w-7 h-7 bg-neutral-900 flex items-center justify-center rounded-sm text-white font-bold text-xs tracking-widest group-hover:bg-neutral-800 transition-colors">
+        L
+      </div>
+      <span class="font-extrabold text-sm tracking-tighter uppercase text-neutral-900">LUMEN</span>
+      <span class="text-[10px] tracking-widest uppercase text-neutral-400 border-l border-neutral-300 pl-2 font-medium hidden sm:inline-block">Stock</span>
+    </a>
+
+    <!-- ENLACES DE PERFIL, WHATSAPP Y LLAMADA TELEFÓNICA (CON EL MISMO TAMAÑO EXACTO) -->
+    <div class="flex items-center gap-2 sm:gap-3">
+      
+      <!-- Botón Mi Perfil -->
+      <button onclick="openProfileModal()" class="w-24 sm:w-28 py-2 flex items-center justify-center gap-2 text-neutral-700 hover:text-black hover:bg-neutral-100 rounded-full text-xs font-semibold tracking-wide transition-all border border-neutral-200/80 hover:border-neutral-300 shadow-sm">
+        <i class="fa-regular fa-user text-xs text-neutral-800"></i>
+        <span>Perfil</span>
+      </button>
+
+      <!-- WhatsApp -->
+      <a href="https://wa.me/34600000000" target="_blank" rel="noopener noreferrer" class="w-24 sm:w-28 py-2 flex items-center justify-center gap-2 text-neutral-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-full text-xs font-semibold tracking-wide transition-all border border-neutral-200/80 hover:border-emerald-200 shadow-sm">
+        <i class="fa-brands fa-whatsapp text-sm text-emerald-500"></i>
+        <span>WhatsApp</span>
+      </a>
+
+      <!-- Llamada telefónica -->
+      <a href="tel:+34600000000" class="w-24 sm:w-28 py-2 flex items-center justify-center gap-2 text-neutral-700 hover:text-black hover:bg-neutral-100 rounded-full text-xs font-semibold tracking-wide transition-all border border-neutral-200/80 hover:border-neutral-300 shadow-sm">
+        <i class="fa-solid fa-phone text-xs text-neutral-800"></i>
+        <span>Llamar</span>
+      </a>
+
+    </div>
+  </footer>
+
+  <!-- LÓGICA DE INTERACCIÓN Y NAVEGACIÓN -->
+  <script>
+    // Registro de elementos visibles de la galería
+    let allCards = Array.from(document.querySelectorAll('.photo-card'));
+    let activeCards = [...allCards];
+    let currentIndex = 0;
+    let isProfileView = false;
+
+    // Estado dinámico de categorías y filtros
+    let categories = [
+      { id: 'all', name: 'Todos' },
+      { id: 'arquitectura', name: 'Arquitectura' },
+      { id: 'retratos', name: 'Retratos' },
+      { id: 'paisajes', name: 'Paisajes' }
+    ];
+    let activeFilterId = 'all';
+
+    // Renderizado y control del menú desplegable de filtros
+    function renderFilterDropdown() {
+      const listEl = document.getElementById('filter-options-list');
+      if (!listEl) return;
+
+      listEl.innerHTML = categories.map(cat => {
+        const isSelected = cat.id === activeFilterId;
+        const count = cat.id === 'all' 
+          ? allCards.length 
+          : allCards.filter(c => c.classList.contains(cat.id)).length;
+
+        return `
+          <button onclick="selectFilter('${cat.id}')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+            isSelected 
+              ? 'bg-white text-black font-semibold shadow-md' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
+          }">
+            <span class="capitalize">${cat.name}</span>
+            <span class="text-[10px] font-mono opacity-60">(${count})</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleFilterDropdown() {
+      const menu = document.getElementById('filter-dropdown-menu');
+      const chevron = document.getElementById('dropdown-chevron');
+      const isHidden = menu.classList.contains('hidden');
+      
+      if (isHidden) {
+        renderFilterDropdown();
+        menu.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+      } else {
+        menu.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+      }
+    }
+
+    // Cerrar el menú desplegable al hacer clic fuera
+    document.addEventListener('click', (e) => {
+      const dropdownBtn = document.getElementById('filter-dropdown-btn');
+      const dropdownMenu = document.getElementById('filter-dropdown-menu');
+      if (dropdownBtn && dropdownMenu && !dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+        dropdownMenu.classList.add('hidden');
+        const chevron = document.getElementById('dropdown-chevron');
+        if (chevron) chevron.classList.remove('rotate-180');
+      }
+    });
+
+    function selectFilter(categoryId) {
+      activeFilterId = categoryId;
+      const categoryObj = categories.find(c => c.id === categoryId) || { name: categoryId };
+      
+      document.getElementById('active-filter-label').textContent = `Filtro: ${categoryObj.name}`;
+      
+      // Ocultar desplegable
+      document.getElementById('filter-dropdown-menu').classList.add('hidden');
+      document.getElementById('dropdown-chevron').classList.remove('rotate-180');
+
+      activeCards = [];
+
+      allCards.forEach(card => {
+        const matches = categoryId === 'all' || card.classList.contains(categoryId);
+        if (matches) {
+          card.style.display = 'block';
+          card.style.animation = 'none';
+          void card.offsetWidth;
+          card.style.animation = `cardAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${activeCards.length * 0.03}s forwards`;
+          activeCards.push(card);
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      document.getElementById('active-filter-count').textContent = activeCards.length;
+    }
+
+    // Flare interactivo por movimiento del ratón en tarjetas de fotos
+    document.querySelectorAll('.flare-wrapper').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+
+    // Lightbox / Modal
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxWrapper = document.getElementById('lightbox-img-wrapper');
+    const profileWrapper = document.getElementById('lightbox-profile-wrapper');
+    const prevBtn = document.getElementById('lb-prev-btn');
+    const nextBtn = document.getElementById('lb-next-btn');
+    const counterWrapper = document.getElementById('lb-counter-wrapper');
+    const counterEl = document.getElementById('lb-counter');
+
+    function openLightbox(cardIndexInAll) {
+      isProfileView = false;
+      const selectedCard = allCards[cardIndexInAll];
+      currentIndex = activeCards.indexOf(selectedCard);
+      if (currentIndex === -1) currentIndex = 0;
+
+      // Mostrar componentes de galería e imágenes
+      lightboxWrapper.classList.remove('hidden');
+      prevBtn.classList.remove('hidden');
+      nextBtn.classList.remove('hidden');
+      counterWrapper.classList.remove('hidden');
+      profileWrapper.classList.add('hidden');
+
+      updateLightboxContent();
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function openProfileModal() {
+      isProfileView = true;
+
+      // Ocultar elementos de galería y mostrar tarjeta de perfil
+      lightboxWrapper.classList.add('hidden');
+      prevBtn.classList.add('hidden');
+      nextBtn.classList.add('hidden');
+      counterWrapper.classList.add('hidden');
+      profileWrapper.classList.remove('hidden');
+
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function updateLightboxContent() {
+      if (activeCards.length === 0 || isProfileView) return;
+      
+      lightboxWrapper.style.opacity = '0';
+      lightboxWrapper.style.transform = 'scale(0.97)';
+
+      setTimeout(() => {
+        const currentCard = activeCards[currentIndex];
+        const imgEl = currentCard.querySelector('img');
+        lightboxImg.src = imgEl.src;
+        lightboxImg.alt = imgEl.alt;
+
+        const totalFormatted = activeCards.length < 10 ? `0${activeCards.length}` : activeCards.length;
+        const currentFormatted = (currentIndex + 1) < 10 ? `0${currentIndex + 1}` : (currentIndex + 1);
+        counterEl.textContent = `${currentFormatted} / ${totalFormatted}`;
+
+        lightboxWrapper.style.opacity = '1';
+        lightboxWrapper.style.transform = 'scale(1)';
+      }, 150);
+    }
+
+    function nextImage() {
+      if (activeCards.length === 0 || isProfileView) return;
+      currentIndex = (currentIndex + 1) % activeCards.length;
+      updateLightboxContent();
+    }
+
+    function prevImage() {
+      if (activeCards.length === 0 || isProfileView) return;
+      currentIndex = (currentIndex - 1 + activeCards.length) % activeCards.length;
+      updateLightboxContent();
+    }
+
+    // Soporte para Teclado (Flechas y ESC)
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (!isProfileView) {
+        if (e.key === 'ArrowRight') nextImage();
+        if (e.key === 'ArrowLeft') prevImage();
+      }
+    });
+
+    // Soporte para gestos táctiles (Swipe Left/Right) en Móvil
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    lightbox.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    lightbox.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      if (!isProfileView) handleSwipe();
+    }, { passive: true });
+
+    function handleSwipe() {
+      const swipeDistance = touchEndX - touchStartX;
+      if (swipeDistance < -50) nextImage();
+      if (swipeDistance > 50) prevImage();
+    }
+  </script>
+</body>
+</html>
