@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUMEN — Architectural & Hospitality Stock</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              dark: '#0a0a0b',
+              gray: '#121215',
+              accent: '#ffffff'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Scrollbar ultra-discreta */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0a0b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #26262b;
+      border-radius: 4px;
+    }
+
+    body {
+      background-color: #0a0a0b;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Animación de entrada fluida */
+    .photo-card {
+      opacity: 0;
+      animation: cardAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes cardAppear {
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* Efectos Flares Cinematográficos y Destellos */
+    .flare-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flare-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: -150%;
+      width: 300%;
+      height: 300%;
+      background: linear-gradient(
+        45deg,
+        transparent 42%,
+        rgba(255, 255, 255, 0.03) 47%,
+        rgba(255, 255, 255, 0.45) 50%,
+        rgba(255, 255, 255, 0.03) 53%,
+        transparent 58%
+      );
+      transform: rotate(25deg);
+      transition: opacity 0.4s ease, transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+      pointer-events: none;
+      z-index: 10;
+      opacity: 0;
+    }
+
+    .flare-wrapper::after {
+      content: '';
+      position: absolute;
+      top: var(--mouse-y, 50%);
+      left: var(--mouse-x, 50%);
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(200, 230, 255, 0.35) 25%,
+        rgba(255, 200, 150, 0.15) 50%,
+        transparent 70%
+      );
+      transform: translate(-50%, -50%) scale(0.3);
+      opacity: 0;
+      transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      z-index: 11;
+    }
+
+    .flare-wrapper:hover::before {
+      opacity: 1;
+      transform: rotate(25deg) translate(25%, 25%);
+    }
+
+    .flare-wrapper:hover::after {
+      opacity: 0.85;
+      transform: translate(-50%, -50%) scale(1.4);
+    }
+
+    .flare-wrapper img {
+      transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
+      will-change: transform;
+    }
+
+    .flare-wrapper:hover img {
+      transform: scale(1.06);
+      filter: brightness(1.08) contrast(1.03);
+    }
+
+    /* Animación de apertura modal */
+    #lightbox.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #lightbox-img-wrapper {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-20 select-none bg-neutral-950">
+
+  <!-- DESPLEGABLE DE FILTROS B2B -->
+  <div class="fixed top-6 left-1/2 -translate-x-1/2 z-30">
+    <div class="relative">
+      <button id="filter-dropdown-btn" onclick="toggleFilterDropdown()" class="flex items-center gap-3 px-5 py-2.5 bg-black/70 backdrop-blur-xl border border-white/15 rounded-full shadow-2xl hover:border-white/30 transition-all text-xs uppercase tracking-widest text-white">
+        <i class="fa-solid fa-sliders text-white/60 text-xs"></i>
+        <span id="active-filter-label" class="font-medium">Filtro: Todos</span>
+        <span id="active-filter-count" class="px-2 py-0.5 bg-white/10 rounded-full text-[10px] text-white/80 font-mono">20</span>
+        <i id="dropdown-chevron" class="fa-solid fa-chevron-down text-[10px] text-white/50 transition-transform duration-300 ml-1"></i>
+      </button>
+
+      <div id="filter-dropdown-menu" class="hidden absolute top-full left-1/2 -translate-x-1/2 mt-2 w-60 bg-neutral-950/95 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl p-2 z-40 transition-all">
+        <div class="text-[10px] uppercase tracking-widest text-white/40 font-mono px-3 py-1.5 border-b border-white/10 flex justify-between items-center">
+          <span>Sectores / Servicios</span>
+          <span class="text-[9px] text-white/30">Filtrar</span>
+        </div>
+
+        <div id="filter-options-list" class="py-1 max-h-64 overflow-y-auto space-y-0.5">
+          <!-- Opciones inyectadas dinámicamente -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GALERÍA FOTOGRÁFICA FULL FRAME (2 cols Móvil | 4 cols Escritorio) -->
+  <main class="w-full min-h-screen grid grid-cols-2 md:grid-cols-4 gap-0 border-b border-white/5" id="gallery-grid">
+
+    <!-- Item 1 - Gastronomía -->
+    <div class="photo-card gastronomia flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.03s" onclick="openLightbox(0)">
+      <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=85" alt="Gastronomía de Autor" class="w-full h-full object-cover block" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-amber-300 font-medium">Gastronomía & Restauración</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Plato de Autor & Alta Cocina</h3>
+      </div>
+    </div>
+
+    <!-- Item 2 - Hotelería -->
+    <div class="photo-card hoteleria flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.06s" onclick="openLightbox(1)">
+      <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=85" alt="Suite Presidencial Hotel" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-sky-300 font-medium">Hotelería & Resorts</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Suite de Lujo con Vistas</h3>
+      </div>
+    </div>
+
+    <!-- Item 3 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.09s" onclick="openLightbox(2)">
+      <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85" alt="Villa Minimalista" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Estructura Residencial Luxe</h3>
+      </div>
+    </div>
+
+    <!-- Item 4 - Comparativa Antes/Después (Especial) -->
+    <div class="photo-card comparativa flare-wrapper aspect-square cursor-pointer bg-neutral-900 group relative border-2 border-indigo-500/30 overflow-hidden" style="animation-delay: 0.12s" onclick="openLightbox(3)" data-type="ba">
+      <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=85" alt="Comparativa de Iluminación y Retoque" class="w-full h-full object-cover block filter contrast-110" loading="lazy">
+      <div class="absolute top-3 right-3 z-20 px-2.5 py-1 bg-indigo-950/80 backdrop-blur-md rounded-full border border-indigo-400/50 text-[10px] font-mono tracking-widest text-indigo-200 flex items-center gap-1.5 shadow-lg">
+        <i class="fa-solid fa-sliders text-xs text-indigo-400"></i>
+        <span>Antes / Después</span>
+      </div>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-indigo-300 font-medium">Calidad de Producción</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Edición Comercial & Color Grading</h3>
+      </div>
+    </div>
+
+    <!-- Item 5 - Gastronomía -->
+    <div class="photo-card gastronomia flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.15s" onclick="openLightbox(4)">
+      <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=1200&q=85" alt="Coctelería de Autor" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-amber-300 font-medium">Gastronomía & Barra</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Mixología & Coctelería Fina</h3>
+      </div>
+    </div>
+
+    <!-- Item 6 - Hotelería -->
+    <div class="photo-card hoteleria flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.18s" onclick="openLightbox(5)">
+      <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1200&q=85" alt="Piscina Resort Infinity" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-sky-300 font-medium">Hotelería & Resorts</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Piscina Infinity al Atardecer</h3>
+      </div>
+    </div>
+
+    <!-- Item 7 - 360° VR Tour -->
+    <div class="photo-card v360 flare-wrapper aspect-square cursor-pointer bg-neutral-900 group relative" style="animation-delay: 0.21s" onclick="openLightbox(6)" data-type="360" data-iframe-url="https://vauru.github.io/360/">
+      <img src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85" alt="Tour Virtual 360" class="w-full h-full object-cover block" loading="lazy">
+      <div class="absolute top-3 right-3 z-20 px-2.5 py-1 bg-black/70 backdrop-blur-md rounded-full border border-indigo-400/40 text-[10px] font-mono tracking-widest text-indigo-300 flex items-center gap-1.5 shadow-lg">
+        <i class="fa-solid fa-vr-cardboard text-xs text-indigo-400"></i>
+        <span>Tour 360° VR</span>
+      </div>
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-indigo-300 font-medium">Experiencia Inmersiva</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Recorrido Virtual para Reservas Directas</h3>
+      </div>
+    </div>
+
+    <!-- Item 8 - Gastronomía -->
+    <div class="photo-card gastronomia flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.24s" onclick="openLightbox(7)">
+      <img src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1200&q=85" alt="Cena en Restaurante Luxe" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-amber-300 font-medium">Gastronomía & Salón</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Ambiente de Salón & Experiencia</h3>
+      </div>
+    </div>
+
+    <!-- Item 9 - Hotelería -->
+    <div class="photo-card hoteleria flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.27s" onclick="openLightbox(8)">
+      <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=85" alt="Spa y Wellness Resort" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-sky-300 font-medium">Hotelería & Wellness</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Área Spa & Relajación Lux</h3>
+      </div>
+    </div>
+
+    <!-- Item 10 - Arquitectura -->
+    <div class="photo-card arquitectura flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.30s" onclick="openLightbox(9)">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=85" alt="Geometría Fachada" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-white/60 font-medium">Arquitectura</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Líneas y Sombras Contemporáneas</h3>
+      </div>
+    </div>
+
+    <!-- Item 11 - Gastronomía -->
+    <div class="photo-card gastronomia flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.33s" onclick="openLightbox(10)">
+      <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=1200&q=85" alt="Fotografía de Producto Gourmet" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-amber-300 font-medium">Gastronomía & Cartas</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Carta Digital & Delivery Premium</h3>
+      </div>
+    </div>
+
+    <!-- Item 12 - Hotelería -->
+    <div class="photo-card hoteleria flare-wrapper aspect-square cursor-pointer bg-neutral-900 group" style="animation-delay: 0.36s" onclick="openLightbox(11)">
+      <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=85" alt="Recepción Hotel Boutique" class="w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex flex-col justify-end z-20 pointer-events-none">
+        <span class="text-[10px] tracking-widest uppercase text-sky-300 font-medium">Hotelería Boutique</span>
+        <h3 class="text-sm font-light text-white tracking-wide">Lobby & Recepción Exclusiva</h3>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL / LIGHTBOX DE VISUALIZACIÓN EN PANTALLA COMPLETA -->
+  <div id="lightbox" class="fixed inset-0 z-50 bg-black/95 backdrop-blur-2xl opacity-0 pointer-events-none transition-opacity duration-300 flex items-center justify-center p-4 md:p-10">
+    
+    <!-- Contador e Información -->
+    <div id="lb-counter-wrapper" class="absolute top-6 left-6 md:left-10 text-white/70 font-mono text-xs tracking-widest z-20">
+      <span id="lb-counter">01 / 12</span>
+    </div>
+
+    <!-- Botón Cerrar -->
+    <button onclick="closeLightbox()" aria-label="Cerrar visor" class="absolute top-5 right-5 md:top-8 md:right-10 text-white/60 hover:text-white text-2xl w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/10 transition-all z-20">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+
+    <!-- Botón Imagen Previa -->
+    <button id="lb-prev-btn" onclick="prevImage()" aria-label="Imagen anterior" class="absolute left-3 md:left-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-2xl w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-white/20 backdrop-blur-md transition-all z-20 border border-white/10">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+
+    <!-- Contenedor de Imagen Central / Visor 360 / Comparador Antes-Después -->
+    <div id="lightbox-img-wrapper" class="relative max-w-6xl max-h-[82vh] w-full h-full flex items-center justify-center overflow-hidden">
+      <!-- Imagen Estándar -->
+      <img id="lightbox-img" src="" alt="Fotografía ampliada" class="max-w-full max-h-full object-contain select-none rounded-sm shadow-2xl">
+      
+      <!-- Componente Antes / Después (Drag Slider) -->
+      <div id="lightbox-ba-container" class="hidden relative max-w-4xl w-full h-[65vh] rounded-2xl overflow-hidden shadow-2xl border border-white/20 select-none">
+        <!-- Imagen "Después" (Edición Pro) -->
+        <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=90" class="absolute inset-0 w-full h-full object-cover filter contrast-110 brightness-105" alt="Fotografía Editada Profesional">
+        <span class="absolute top-4 right-4 bg-emerald-500/80 text-white px-3 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase z-10 backdrop-blur-md">
+          Con Edición Lumière & Iluminación Pro
+        </span>
+
+        <!-- Imagen "Antes" (Sin editar) -->
+        <div id="ba-before-wrapper" class="absolute top-0 left-0 bottom-0 w-1/2 overflow-hidden border-r-2 border-white/80 z-10">
+          <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=90" class="absolute top-0 left-0 max-w-none h-full object-cover filter grayscale contrast-75 brightness-75 blur-[0.5px]" id="ba-before-img" alt="Foto Smartphone Bruta">
+          <span class="absolute top-4 left-4 bg-black/80 text-white/80 px-3 py-1 rounded-full text-[10px] font-mono tracking-widest uppercase backdrop-blur-md">
+            Foto Móvil / Sin Producción
+          </span>
+        </div>
+
+        <!-- Slider Draggable Handle -->
+        <div id="ba-slider-handle" class="absolute top-0 bottom-0 left-1/2 w-8 -ml-4 z-20 flex items-center justify-center cursor-ew-resize">
+          <div class="w-8 h-8 rounded-full bg-white text-black shadow-2xl flex items-center justify-center text-xs">
+            <i class="fa-solid fa-code-compare"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contenedor iFrame para Vista 360° -->
+      <div id="lightbox-iframe-container" class="hidden w-full h-[70vh] md:h-[78vh] max-w-5xl relative rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-neutral-900">
+        <div id="iframe-loader" class="absolute inset-0 flex flex-col items-center justify-center bg-neutral-950 text-white/60 text-xs font-mono tracking-widest gap-3 z-0">
+          <i class="fa-solid fa-circle-notch fa-spin text-2xl text-indigo-400"></i>
+          <span>CARGANDO EXPERIENCIA 360°...</span>
+        </div>
+        <iframe id="lightbox-iframe" class="w-full h-full border-0 relative z-10 bg-transparent" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; xr-spatial-tracking; fullscreen; vr" allowfullscreen onload="document.getElementById('iframe-loader')?.classList.add('hidden')"></iframe>
+      </div>
+    </div>
+
+    <!-- Contenedor de Perfil Personal & Cotizador B2B -->
+    <div id="lightbox-profile-wrapper" class="hidden relative max-w-4xl w-full bg-neutral-950/95 border border-white/15 rounded-3xl overflow-hidden backdrop-blur-2xl shadow-2xl text-white z-20 my-auto transition-all flex flex-col md:flex-row max-h-[88vh]">
+      
+      <!-- Sección Fotográfica Protagonista -->
+      <div class="relative w-full md:w-5/12 h-56 md:h-auto overflow-hidden bg-neutral-900 flex-shrink-0">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=85" alt="Retrato Mateo Valenzuela" class="w-full h-full object-cover object-center">
+        
+        <div class="absolute bottom-4 left-4 z-20 flex flex-col gap-1">
+          <span class="px-3 py-1 bg-black/70 backdrop-blur-md border border-white/20 rounded-full text-[10px] uppercase tracking-widest text-white/90 font-medium w-fit">
+            Director Fotográfico
+          </span>
+          <span class="text-[10px] text-white/70 font-mono pl-1">Especialista Gastronomía & Hoteles</span>
+        </div>
+      </div>
+
+      <!-- Información B2B, Cotizador Express y Clientes -->
+      <div class="w-full md:w-7/12 p-6 md:p-8 flex flex-col justify-between space-y-4 overflow-y-auto">
+        <div>
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <span class="text-[10px] tracking-widest uppercase text-amber-400 font-mono block">Proyectos Comerciales & Stock</span>
+              <h2 class="text-2xl font-bold tracking-tight text-white">Mateo Valenzuela</h2>
+            </div>
+            <span class="px-2.5 py-1 bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 rounded-full text-[10px] font-mono">
+              <i class="fa-solid fa-check-double mr-1"></i> Licencia Incluida
+            </span>
+          </div>
+          
+          <p class="text-xs leading-relaxed text-white/70 font-light mb-4">
+            Aumento del impacto visual para cartas digitales, plataformas de reserva (Booking, Airbnb Luxe) y campañas de prensa. Más de 120 proyectos ejecutados.
+          </p>
+
+          <!-- Cotizador Exprés B2B Incorporado -->
+          <div class="bg-neutral-900/80 p-4 rounded-2xl border border-white/10 mb-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+              <span class="text-[11px] font-semibold text-white tracking-wider uppercase"><i class="fa-solid fa-calculator text-amber-400 mr-1.5"></i> Cotizador Express B2B</span>
+              <span class="text-[10px] text-white/40 font-mono">Estimación al instante</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <label class="text-[10px] text-white/50 block mb-1">Sector / Servicio</label>
+                <select id="quote-sector" onchange="calculateQuote()" class="w-full bg-neutral-950 border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none">
+                  <option value="gastronomia">Gastronomía & Cartas</option>
+                  <option value="hoteleria">Hotel & Resort Completo</option>
+                  <option value="360">Tour Virtual 360° VR</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="text-[10px] text-white/50 block mb-1">Volumen / Unidades</label>
+                <select id="quote-volume" onchange="calculateQuote()" class="w-full bg-neutral-950 border border-white/20 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none">
+                  <option value="pack1">Pack Básico (10 Fotos)</option>
+                  <option value="pack2" selected>Pack Editorial (25 Fotos)</option>
+                  <option value="pack3">Producción Completa (+50 Fotos + 360°)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-1 border-t border-white/10">
+              <span class="text-[11px] text-white/70 font-light">Estimado aproximado:</span>
+              <span id="quote-price" class="text-sm font-bold text-emerald-400 font-mono">€450 EUR</span>
+            </div>
+          </div>
+
+          <!-- Social Proof Logos -->
+          <div>
+            <span class="text-[9px] uppercase tracking-widest text-white/30 font-mono block mb-2">Clientes & Colaboraciones</span>
+            <div class="flex items-center gap-3 opacity-60 grayscale hover:grayscale-0 transition-all text-xs text-white/80">
+              <span class="px-2 py-1 bg-white/5 rounded border border-white/10 font-bold tracking-tighter">BOUTIQUE HOTELS</span>
+              <span class="px-2 py-1 bg-white/5 rounded border border-white/10 font-bold tracking-tighter">MICHELIN GUIDE</span>
+              <span class="px-2 py-1 bg-white/5 rounded border border-white/10 font-bold tracking-tighter">RELAIS & CHÂTEAUX</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de Acción Sutiles -->
+        <div class="pt-2 flex items-center justify-start gap-2.5">
+          <button onclick="sendQuoteWhatsApp()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-xs font-semibold transition-all flex items-center gap-2 shadow-lg shadow-emerald-950/50">
+            <i class="fa-brands fa-whatsapp text-sm"></i>
+            <span>Enviar Cotización por WhatsApp</span>
+          </button>
+
+          <a href="tel:+34600000000" class="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white/90 border border-white/20 rounded-full text-xs font-medium transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-phone text-[10px]"></i>
+            <span>Llamar</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Botón Imagen Siguiente -->
+    <button id="lb-next-btn" onclick="nextImage()" aria-label="Imagen siguiente" class="absolute right-3 md:right-8 top-1/2 -translate-y-1/2 text-white/70 hover:text-white text-2xl w-14 h-14 flex items-center justify-center rounded-full bg-black/40 hover:bg-white/20 backdrop-blur-md transition-all z-20 border border-white/10">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+
+  </div>
+
+  <!-- FOOTER FIJO MINIMALISTA -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white text-neutral-900 border-t border-neutral-200 px-4 sm:px-6 py-3 sm:py-4 md:px-12 flex justify-between items-center shadow-[0_-5px_25px_rgba(0,0,0,0.06)]">
+    
+    <a href="#" class="flex items-center gap-2 group">
+      <div class="w-7 h-7 bg-neutral-900 flex items-center justify-center rounded-sm text-white font-bold text-xs tracking-widest group-hover:bg-neutral-800 transition-colors">
+        L
+      </div>
+      <span class="font-extrabold text-sm tracking-tighter uppercase text-neutral-900">LUMEN</span>
+      <span class="text-[10px] tracking-widest uppercase text-neutral-400 border-l border-neutral-300 pl-2 font-medium hidden sm:inline-block">Commercial Stock</span>
+    </a>
+
+    <div class="flex items-center gap-2 sm:gap-3">
+      
+      <button onclick="openProfileModal()" title="Perfil" class="w-10 h-10 sm:w-28 sm:h-auto py-2 flex items-center justify-center gap-2 text-neutral-700 hover:text-black hover:bg-neutral-100 rounded-full text-xs font-semibold tracking-wide transition-all border border-neutral-200/80 hover:border-neutral-300 shadow-sm">
+        <i class="fa-regular fa-user text-xs text-neutral-800"></i>
+        <span class="hidden sm:inline">Perfil</span>
+      </button>
+
+      <a href="https://wa.me/34600000000" target="_blank" rel="noopener noreferrer" title="WhatsApp" class="w-10 h-10 sm:w-28 sm:h-auto py-2 flex items-center justify-center gap-2 text-neutral-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-full text-xs font-semibold tracking-wide transition-all border border-neutral-200/80 hover:border-emerald-200 shadow-sm">
+        <i class="fa-brands fa-whatsapp text-sm text-emerald-500"></i>
+        <span class="hidden sm:inline">WhatsApp</span>
+      </a>
+
+      <a href="tel:+34600000000" title="Llamar" class="w-10 h-10 sm:w-28 sm:h-auto py-2 flex items-center justify-center gap-2 text-neutral-700 hover:text-black hover:bg-neutral-100 rounded-full text-xs font-semibold tracking-wide transition-all border border-neutral-200/80 hover:border-neutral-300 shadow-sm">
+        <i class="fa-solid fa-phone text-xs text-neutral-800"></i>
+        <span class="hidden sm:inline">Llamar</span>
+      </a>
+
+    </div>
+  </footer>
+
+  <script>
+    let allCards = Array.from(document.querySelectorAll('.photo-card'));
+    let activeCards = [...allCards];
+    let currentIndex = 0;
+    let isProfileView = false;
+
+    // Lista de categorías adaptadas para clientes B2B
+    let categories = [
+      { id: 'all', name: 'Todos los Trabajos' },
+      { id: 'gastronomia', name: 'Gastronomía & Cartas' },
+      { id: 'hoteleria', name: 'Hotelería & Resorts' },
+      { id: 'arquitectura', name: 'Arquitectura' },
+      { id: 'v360', name: 'Tours Virtuales 360°' },
+      { id: 'comparativa', name: 'Calidad Antes / Después' }
+    ];
+    let activeFilterId = 'all';
+
+    function renderFilterDropdown() {
+      const listEl = document.getElementById('filter-options-list');
+      if (!listEl) return;
+
+      listEl.innerHTML = categories.map(cat => {
+        const isSelected = cat.id === activeFilterId;
+        const count = cat.id === 'all' 
+          ? allCards.length 
+          : allCards.filter(c => c.classList.contains(cat.id)).length;
+
+        return `
+          <button onclick="selectFilter('${cat.id}')" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+            isSelected 
+              ? 'bg-white text-black font-semibold shadow-md' 
+              : 'text-white/70 hover:text-white hover:bg-white/10'
+          }">
+            <span class="capitalize">${cat.name}</span>
+            <span class="text-[10px] font-mono opacity-60">(${count})</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleFilterDropdown() {
+      const menu = document.getElementById('filter-dropdown-menu');
+      const chevron = document.getElementById('dropdown-chevron');
+      const isHidden = menu.classList.contains('hidden');
+      
+      if (isHidden) {
+        renderFilterDropdown();
+        menu.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+      } else {
+        menu.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      const dropdownBtn = document.getElementById('filter-dropdown-btn');
+      const dropdownMenu = document.getElementById('filter-dropdown-menu');
+      if (dropdownBtn && dropdownMenu && !dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+        dropdownMenu.classList.add('hidden');
+        const chevron = document.getElementById('dropdown-chevron');
+        if (chevron) chevron.classList.remove('rotate-180');
+      }
+    });
+
+    function selectFilter(categoryId) {
+      activeFilterId = categoryId;
+      const categoryObj = categories.find(c => c.id === categoryId) || { name: categoryId };
+      
+      document.getElementById('active-filter-label').textContent = `Filtro: ${categoryObj.name}`;
+      document.getElementById('filter-dropdown-menu').classList.add('hidden');
+      document.getElementById('dropdown-chevron').classList.remove('rotate-180');
+
+      activeCards = [];
+
+      allCards.forEach(card => {
+        const matches = categoryId === 'all' || card.classList.contains(categoryId);
+        if (matches) {
+          card.style.display = 'block';
+          card.style.animation = 'none';
+          void card.offsetWidth;
+          card.style.animation = `cardAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1) ${activeCards.length * 0.015}s forwards`;
+          activeCards.push(card);
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      document.getElementById('active-filter-count').textContent = activeCards.length;
+    }
+
+    // Flare interactivo por ratón
+    document.querySelectorAll('.flare-wrapper').forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+    });
+
+    // Lightbox & Visor
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxIframeContainer = document.getElementById('lightbox-iframe-container');
+    const lightboxIframe = document.getElementById('lightbox-iframe');
+    const lightboxBaContainer = document.getElementById('lightbox-ba-container');
+    const lightboxWrapper = document.getElementById('lightbox-img-wrapper');
+    const profileWrapper = document.getElementById('lightbox-profile-wrapper');
+    const prevBtn = document.getElementById('lb-prev-btn');
+    const nextBtn = document.getElementById('lb-next-btn');
+    const counterWrapper = document.getElementById('lb-counter-wrapper');
+    const counterEl = document.getElementById('lb-counter');
+
+    function openLightbox(cardIndexInAll) {
+      isProfileView = false;
+      const selectedCard = allCards[cardIndexInAll];
+      currentIndex = activeCards.indexOf(selectedCard);
+      if (currentIndex === -1) currentIndex = 0;
+
+      lightboxWrapper.classList.remove('hidden');
+      prevBtn.classList.remove('hidden');
+      nextBtn.classList.remove('hidden');
+      counterWrapper.classList.remove('hidden');
+      profileWrapper.classList.add('hidden');
+
+      updateLightboxContent();
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function openProfileModal() {
+      isProfileView = true;
+      lightboxWrapper.classList.add('hidden');
+      prevBtn.classList.add('hidden');
+      nextBtn.classList.add('hidden');
+      counterWrapper.classList.add('hidden');
+      profileWrapper.classList.remove('hidden');
+
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      calculateQuote();
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+      document.body.style.overflow = '';
+      if (lightboxIframe) {
+        lightboxIframe.removeAttribute('srcdoc');
+        lightboxIframe.src = 'about:blank';
+      }
+    }
+
+    function updateLightboxContent() {
+      if (activeCards.length === 0 || isProfileView) return;
+      
+      lightboxWrapper.style.opacity = '0';
+      lightboxWrapper.style.transform = 'scale(0.97)';
+
+      setTimeout(() => {
+        const currentCard = activeCards[currentIndex];
+        const is360 = currentCard.dataset.type === '360' || currentCard.classList.contains('v360');
+        const isBa = currentCard.dataset.type === 'ba' || currentCard.classList.contains('comparativa');
+
+        // Reset visibility
+        lightboxImg.classList.add('hidden');
+        lightboxIframeContainer.classList.add('hidden');
+        lightboxBaContainer.classList.add('hidden');
+
+        if (isBa) {
+          lightboxBaContainer.classList.remove('hidden');
+          initBaSlider();
+        } else if (is360) {
+          lightboxIframeContainer.classList.remove('hidden');
+          const loader = document.getElementById('iframe-loader');
+          if (loader) loader.classList.remove('hidden');
+
+          const directIframeUrl = currentCard.dataset.iframeUrl;
+          if (directIframeUrl) {
+            lightboxIframe.removeAttribute('srcdoc');
+            lightboxIframe.src = directIframeUrl;
+          }
+        } else {
+          lightboxIframe.removeAttribute('srcdoc');
+          lightboxIframe.src = 'about:blank';
+          lightboxImg.classList.remove('hidden');
+          const imgEl = currentCard.querySelector('img');
+          lightboxImg.src = imgEl.src;
+          lightboxImg.alt = imgEl.alt;
+        }
+
+        const totalFormatted = activeCards.length < 10 ? `0${activeCards.length}` : activeCards.length;
+        const currentFormatted = (currentIndex + 1) < 10 ? `0${currentIndex + 1}` : (currentIndex + 1);
+        counterEl.textContent = `${currentFormatted} / ${totalFormatted}`;
+
+        lightboxWrapper.style.opacity = '1';
+        lightboxWrapper.style.transform = 'scale(1)';
+      }, 150);
+    }
+
+    // Lógica del Slider "Antes / Después"
+    function initBaSlider() {
+      const container = document.getElementById('lightbox-ba-container');
+      const beforeWrapper = document.getElementById('ba-before-wrapper');
+      const beforeImg = document.getElementById('ba-before-img');
+      const handle = document.getElementById('ba-slider-handle');
+
+      if (!container || !beforeWrapper || !handle) return;
+
+      function updateWidth(clientX) {
+        const rect = container.getBoundingClientRect();
+        let x = clientX - rect.left;
+        if (x < 0) x = 0;
+        if (x > rect.width) x = rect.width;
+        
+        const percentage = (x / rect.width) * 100;
+        beforeWrapper.style.width = `${percentage}%`;
+        beforeImg.style.width = `${rect.width}px`;
+        handle.style.left = `${percentage}%`;
+      }
+
+      let isDragging = false;
+      handle.onmousedown = () => isDragging = true;
+      window.onmouseup = () => isDragging = false;
+      window.onmousemove = (e) => {
+        if (isDragging) updateWidth(e.clientX);
+      };
+
+      // Soporte táctil
+      handle.ontouchstart = () => isDragging = true;
+      window.ontouchend = () => isDragging = false;
+      window.ontouchmove = (e) => {
+        if (isDragging) updateWidth(e.touches[0].clientX);
+      };
+    }
+
+    // Cotizador Exprés
+    function calculateQuote() {
+      const sector = document.getElementById('quote-sector').value;
+      const volume = document.getElementById('quote-volume').value;
+      let price = 350;
+
+      if (sector === 'gastronomia') price = 350;
+      if (sector === 'hoteleria') price = 650;
+      if (sector === '360') price = 500;
+
+      if (volume === 'pack2') price += 200;
+      if (volume === 'pack3') price += 450;
+
+      document.getElementById('quote-price').textContent = `€${price} EUR`;
+    }
+
+    function sendQuoteWhatsApp() {
+      const sectorText = document.getElementById('quote-sector').options[document.getElementById('quote-sector').selectedIndex].text;
+      const volumeText = document.getElementById('quote-volume').options[document.getElementById('quote-volume').selectedIndex].text;
+      const priceText = document.getElementById('quote-price').textContent;
+
+      const message = `Hola Mateo, estuve viendo tu portfolio LUMEN. Me interesa cotizar un servicio de fotografía:\n- Sector: ${sectorText}\n- Paquete: ${volumeText}\n- Estimado aproximado: ${priceText}\n¿Podemos coordinar una llamada o disponibilidad?`;
+      
+      const encoded = encodeURIComponent(message);
+      window.open(`https://wa.me/34600000000?text=${encoded}`, '_blank');
+    }
+
+    function nextImage() {
+      if (activeCards.length === 0 || isProfileView) return;
+      currentIndex = (currentIndex + 1) % activeCards.length;
+      updateLightboxContent();
+    }
+
+    function prevImage() {
+      if (activeCards.length === 0 || isProfileView) return;
+      currentIndex = (currentIndex - 1 + activeCards.length) % activeCards.length;
+      updateLightboxContent();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (!isProfileView) {
+        if (e.key === 'ArrowRight') nextImage();
+        if (e.key === 'ArrowLeft') prevImage();
+      }
+    });
+  </script>
+</body>
+</html>
